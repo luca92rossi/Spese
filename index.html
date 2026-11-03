@@ -87,6 +87,10 @@ textarea{resize:vertical}
 .bar-top span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar{height:9px;background:var(--bg);border-radius:9px;overflow:hidden;margin-top:4px}
 .bar i{display:block;height:100%;background:var(--bar);border-radius:9px;min-width:2px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px}
+.stack{display:flex;gap:2px;height:16px;border-radius:9px;overflow:hidden;margin-bottom:6px}
+.stack i{display:block;min-width:3px}
+.exp-list{margin-top:10px}
 .cols{display:flex;align-items:flex-end;gap:6px;height:130px;margin-top:6px}
 .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--muted);cursor:pointer;min-width:0}
 .col i{display:block;width:100%;background:var(--bar);border-radius:6px 6px 0 0;min-height:2px;opacity:.55}
@@ -195,6 +199,23 @@ const CATS = {
 };
 const SUBKEY = {tata:'tipo',spesa:'negozio',medicine:'tipo',scuola:'voce',divertimento:'tipo',viaggi:'voce',ristorazione:'locale',bar:'tipo'};
 
+/* Colori per sotto-tipo (nel recap) */
+const TATA_COLORS = {'Busta paga':'#3b82f6','Contributi':'#8b5cf6','Extra ore':'#f59e0b','Extra weekend':'#ec4899','Extra notte':'#ef4444'};
+const PALETTE = ['#3b82f6','#f59e0b','#ec4899','#10b981','#8b5cf6','#ef4444','#06b6d4','#84cc16'];
+function subColor(cat,val){
+  if(cat==='tata' && TATA_COLORS[val]) return TATA_COLORS[val];
+  const f=CATS[cat]?.fields.find(x=>x.id===SUBKEY[cat]);
+  let i=f&&f.options?f.options.indexOf(val):-1;
+  if(i<0){ i=0; for(const ch of String(val)) i=(i*31+ch.charCodeAt(0))%997; }
+  return PALETTE[i%PALETTE.length];
+}
+/* Tariffe tata (impostabili in Impostazioni) */
+const RATE_FIELDS = [
+  {tipo:'Extra ore',label:'Extra ore',unit:'€ / ora'},
+  {tipo:'Extra weekend',label:'Extra weekend',unit:'€ / giorno'},
+  {tipo:'Extra notte',label:'Extra notte',unit:'€ / notte'}
+];
+
 /* ------------------------------ Utilità ------------------------------ */
 const $ = (s,r=document)=>r.querySelector(s);
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -228,6 +249,7 @@ const S = {
 };
 let FB=null, DB=null, unsubs=[];
 const persist = () => { if(S.mode==='local'){ LS.set('sc_expenses',S.expenses); LS.set('sc_log',S.log); } };
+const rate = tipo => { const r=S.settings.rates&&S.settings.rates[tipo]; return r>0?r:0; };
 const device = () => /iPhone/.test(navigator.userAgent)?'iPhone':/iPad|Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1?'iPad':/Android/.test(navigator.userAgent)?'Android':'PC';
 
 /* --------------------------- Dati: salvataggio + log --------------------------- */
@@ -315,6 +337,16 @@ function mountForm(root,init,opt){
   const st={cat:init.category||'',amount:init.amount!=null?String(init.amount).replace('.',','):'',date:init.date||today(),
             payer:init.payer||S.settings.payers[0],note:init.note||'',p:{...(init.params||{})}};
   const payers=[...new Set([...S.settings.payers,...(init.payer?[init.payer]:[])])];
+  function qtyHint(){
+    const r=rate(st.p.tipo), q=parseAmt(st.p.qty||'');
+    const u=st.cat==='tata'?CATS.tata.fields[1].unit(st.p):'';
+    if(!r) return '⚙️ Imposta la tariffa in Impostazioni per calcolare l\'importo in automatico';
+    return `Tariffa ${eur(r)} / ${u}`+(q>0?` → <b>${eur(r*q)}</b>`:'');
+  }
+  function autoAmount(){
+    const r=rate(st.p.tipo), q=parseAmt(st.p.qty||'');
+    if(st.cat==='tata' && r>0 && q>0) st.amount=String(Math.round(r*q*100)/100).replace('.',',');
+  }
   function paramsHTML(){
     const c=CATS[st.cat]; if(!c) return '';
     let h=`<div class="params"><div class="ph">${c.icon} Dettagli ${esc(c.label)}</div>`;
@@ -323,7 +355,10 @@ function mountForm(root,init,opt){
       const label=typeof f.label==='function'?f.label(st.p):f.label;
       const v=st.p[f.id]??'';
       h+=`<label>${esc(label)}${f.required?' *':''}</label>`;
-      if(f.type==='select'){
+      if(f.id==='qty'){
+        h+=`<input data-p="qty" type="text" inputmode="decimal" value="${esc(String(v).replace('.',','))}">
+            <div class="note" id="qtyhint" style="margin-top:6px">${qtyHint()}</div>`;
+      } else if(f.type==='select'){
         h+=`<select data-p="${f.id}"><option value="">Seleziona…</option>${f.options.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
       } else if(f.type==='number'){
         h+=`<input data-p="${f.id}" type="text" inputmode="decimal" value="${esc(String(v).replace('.',','))}">`;
@@ -359,9 +394,17 @@ function mountForm(root,init,opt){
   root.oninput=ev=>{
     const t=ev.target;
     if(t.id==='f-amount') st.amount=t.value; else if(t.id==='f-date') st.date=t.value; else if(t.id==='f-note') st.note=t.value;
-    else if(t.dataset.p && t.tagName!=='SELECT') st.p[t.dataset.p]=t.value;
+    else if(t.dataset.p && t.tagName!=='SELECT'){
+      st.p[t.dataset.p]=t.value;
+      if(t.dataset.p==='qty'){
+        autoAmount();
+        const a=$('#f-amount',root); if(a) a.value=st.amount;
+        const h=$('#qtyhint',root); if(h) h.innerHTML=qtyHint();
+      }
+    }
   };
-  root.onchange=ev=>{ const t=ev.target; if(t.dataset.p && t.tagName==='SELECT'){ st.p[t.dataset.p]=t.value; draw(); } };
+  root.onchange=ev=>{ const t=ev.target; if(t.dataset.p && t.tagName==='SELECT'){
+    st.p[t.dataset.p]=t.value; if(t.dataset.p==='tipo'){ delete st.p.tariffa; autoAmount(); } draw(); } };
   root.onsubmit=ev=>{
     ev.preventDefault();
     if(!st.cat) return toast('Scegli il tipo di spesa');
@@ -377,6 +420,7 @@ function mountForm(root,init,opt){
       if(v!=='') params[f.id]=v;
     }
     if(st.cat==='tata' && !params.competenza) params.competenza=ym(st.date);
+    if(st.cat==='tata' && params.qty){ const t=st.p.tariffa||rate(params.tipo); if(t) params.tariffa=Number(t); }
     opt.onSave({id:init.id||uid(),category:st.cat,amount,date:st.date,payer:st.payer,note:st.note.trim(),params,createdAt:init.createdAt},st);
   };
   draw();
@@ -386,8 +430,10 @@ function mountForm(root,init,opt){
 function expRow(e){
   const c=CATS[e.category]||{icon:'❓',label:e.category};
   const det=describe(e);
+  const sv=e.params?.[SUBKEY[e.category]];
+  const col=e.category==='tata'&&sv?subColor('tata',sv):'';
   return `<div class="exp" data-edit="${esc(e.id)}">
-    <div class="ic">${c.icon}</div>
+    <div class="ic" ${col?`style="background:${col}2e;box-shadow:inset 0 0 0 2px ${col}"`:''}>${c.icon}</div>
     <div class="mid"><div class="t">${esc(c.label)}${det?' · '+esc(det):''}</div>
     <div class="s">${dLabel(e.date)} · ${esc(e.payer)}${e.note?' · “'+esc(e.note)+'”':''}</div></div>
     <div class="amt">${eur(e.amount)}</div></div>`;
@@ -395,8 +441,12 @@ function expRow(e){
 function bars(rows,total){ // rows: [label,value]
   if(!rows.length) return '<div class="empty">Nessun dato</div>';
   const max=Math.max(...rows.map(r=>r[1]));
-  return rows.map(([l,v])=>`<div class="bar-row"><div class="bar-top"><span>${l}</span><span><b>${eur(v)}</b>${total?` <span class="sub">${Math.round(v/total*100)}%</span>`:''}</span></div>
-    <div class="bar"><i style="width:${max?v/max*100:0}%"></i></div></div>`).join('');
+  return rows.map(([l,v,col])=>`<div class="bar-row"><div class="bar-top"><span>${col?`<span class="dot" style="background:${col}"></span>`:''}${l}</span><span><b>${eur(v)}</b>${total?` <span class="sub">${Math.round(v/total*100)}%</span>`:''}</span></div>
+    <div class="bar"><i style="width:${max?v/max*100:0}%${col?`;background:${col}`:''}"></i></div></div>`).join('');
+}
+function stack(rows,total){
+  if(!total) return '';
+  return `<div class="stack">${rows.map(r=>`<i title="${r[1]}" style="width:${r[1]/total*100}%;background:${r[2]}"></i>`).join('')}</div>`;
 }
 function monthNav(m){
   return `<div class="monthnav"><button data-mn="-1" aria-label="Mese precedente">‹</button>
@@ -424,8 +474,11 @@ const VIEWS={
     const delta=ptot?((tot-ptot)/ptot*100):null;
     const days=new Set(cur.map(e=>e.date)).size;
     const byCat=Object.entries(group(cur,e=>e.category)).map(([k,l])=>[`${CATS[k]?.icon||''} ${esc(CATS[k]?.label||k)}`,sum(l)]).sort((a,b)=>b[1]-a[1]);
-    const tata=cur.filter(e=>e.category==='tata');
-    const byTata=Object.entries(group(tata,e=>e.params?.tipo)).map(([k,l])=>[esc(k),sum(l)]).sort((a,b)=>b[1]-a[1]);
+    const present=Object.keys(CATS).filter(k=>cur.some(e=>e.category===k));
+    let dc=S.monthDetail; if(!present.includes(dc)) dc=present.includes('tata')?'tata':present[0];
+    const dl=cur.filter(e=>e.category===dc);
+    const dRows=dc?Object.entries(group(dl,e=>e.params?.[SUBKEY[dc]])).map(([k,l])=>[esc(k),sum(l),subColor(dc,k)]).sort((a,b)=>b[1]-a[1]):[];
+    const dTot=sum(dl);
     const byPayer=Object.entries(group(cur,e=>e.payer)).map(([k,l])=>[k,sum(l)]);
     S.settings.payers.forEach(p=>{ if(!byPayer.find(x=>x[0]===p)) byPayer.push([p,0]); });
     const share=byPayer.length?tot/byPayer.length:0;
@@ -449,7 +502,10 @@ const VIEWS={
         </div></div>
       <div class="card"><h2>Ultimi 6 mesi</h2>${trendCols(S.expenses,months,m)}</div>
       <div class="card"><h2>Per tipo di spesa</h2>${bars(byCat,tot)}</div>
-      ${tata.length?`<div class="card"><h2>👩‍🍼 Dettaglio Tata · ${eur(sum(tata))}</h2>${bars(byTata,sum(tata))}</div>`:''}
+      ${present.length?`<div class="card"><h2>Dettaglio${dc?' '+esc(CATS[dc].label)+' · '+eur(dTot):''}</h2>
+        <div class="chips" style="margin-bottom:10px">${present.map(k=>`<button class="chip ${k===dc?'on':''}" data-md="${k}">${CATS[k].icon} ${esc(CATS[k].label)}</button>`).join('')}</div>
+        ${stack(dRows,dTot)}${bars(dRows,dTot)}
+        ${dc==='tata'?`<div class="exp-list">${dl.sort((a,b)=>b.date.localeCompare(a.date)).map(expRow).join('')}</div>`:''}</div>`:''}
       <div class="card"><h2>Chi ha pagato</h2>${bars(byPayer.map(x=>[esc(x[0]),x[1]]),tot)}
         ${settle?`<p style="margin:12px 0 0">${settle}</p>`:''}</div>
       <div class="card"><h2>Le 5 spese più alte</h2>${top.length?top.map(expRow).join(''):'<div class="empty">Nessuna spesa</div>'}</div>`;
@@ -476,7 +532,7 @@ const VIEWS={
       const t=S.histType, list=S.expenses.filter(e=>e.category===t);
       const byM=Object.entries(group(list,e=>ym(e.date))).sort((a,b)=>b[0].localeCompare(a[0]));
       const sk=SUBKEY[t];
-      const bySub=Object.entries(group(list,e=>e.params?.[sk])).map(([k,l])=>[esc(k),sum(l)]).sort((a,b)=>b[1]-a[1]);
+      const bySub=Object.entries(group(list,e=>e.params?.[sk])).map(([k,l])=>[esc(k),sum(l),subColor(t,k)]).sort((a,b)=>b[1]-a[1]);
       const avg=byM.length?sum(list)/byM.length:0;
       const label=CATS[t].fields.find(f=>f.id===sk)?.label||'Dettaglio';
       body=`<div class="chips" style="margin-bottom:12px">${Object.entries(CATS).map(([k,c])=>`<button class="chip ${t===k?'on':''}" data-ht="${k}">${c.icon} ${esc(c.label)}</button>`).join('')}</div>
@@ -484,7 +540,7 @@ const VIEWS={
           <div class="kpis"><div class="kpi"><b>${eur(sum(list))}</b><small>totale storico</small></div>
           <div class="kpi"><b>${eur(avg)}</b><small>media mensile</small></div>
           <div class="kpi"><b>${list.length}</b><small>spese</small></div></div></div>
-        <div class="card"><h2>Per ${esc(label.toLowerCase())}</h2>${bars(bySub,sum(list))}</div>
+        <div class="card"><h2>Per ${esc(label.toLowerCase())}</h2>${stack(bySub,sum(list))}${bars(bySub,sum(list))}</div>
         <div class="card"><h2>Mese per mese</h2>${byM.length?byM.map(([mm,l])=>`<details><summary>
           <span class="l">${mLabel(mm)}<small>${l.length} spese · media ${eur(sum(l)/l.length)}</small></span><span class="r">${eur(sum(l))}</span></summary>
           ${l.sort((a,b)=>b.date.localeCompare(a.date)).map(expRow).join('')}</details>`).join(''):'<div class="empty">Nessuna spesa registrata per questo tipo</div>'}</div>`;
@@ -506,6 +562,11 @@ const VIEWS={
         <div class="actions"><button class="btn sec" id="fbdisc">Scollega</button><button class="btn" id="fbsave">Salva e collega</button></div>`}
         ${S.mode==='firebase'&&LS.get('sc_expenses',[]).length?`<button class="btn sec block" id="upload" style="margin-top:12px">⬆️ Carica su Firebase le ${LS.get('sc_expenses',[]).length} spese salvate in locale</button>`:''}
       </div>
+      <div class="card"><h2>👩‍🍼 Tariffe Tata</h2>
+        <p class="note" style="margin:0">Se imposti una tariffa, in "Inserisci" basta indicare ore / giorni / notti e l'importo si calcola da solo (resta modificabile). Lascia vuoto per inserire l'importo a mano.</p>
+        ${RATE_FIELDS.map(r=>`<label>${esc(r.label)} (${esc(r.unit)})</label>
+          <input data-rate="${esc(r.tipo)}" type="text" inputmode="decimal" placeholder="0,00" value="${rate(r.tipo)?String(rate(r.tipo)).replace('.',','):''}">`).join('')}
+        <div class="actions"><button class="btn" id="saverates">Salva tariffe</button></div></div>
       <div class="card"><h2>Chi sostiene le spese</h2>
         <label style="margin-top:0">Nomi separati da virgola</label><input id="payers" value="${esc(S.settings.payers.join(', '))}">
         <div class="actions"><button class="btn" id="savepayers">Salva nomi</button></div></div>
@@ -556,6 +617,12 @@ $('#app').addEventListener('click',ev=>{
     return;
   }
   if(q('#fbdisc')){ S.fbConfig=null; LS.set('sc_fbconfig',null); disconnectFirebase(); toast('Scollegato'); return render(); }
+  if((x=q('[data-md]'))){ S.monthDetail=x.dataset.md; return render(); }
+  if(q('#saverates')){
+    const rates={};
+    document.querySelectorAll('[data-rate]').forEach(i=>{ const n=parseAmt(i.value||'0'); if(n>0) rates[i.dataset.rate]=n; });
+    S.settings.rates=rates; LS.set('sc_settings',S.settings); return toast('Tariffe salvate');
+  }
   if(q('#savepayers')){
     const p=$('#payers').value.split(',').map(s=>s.trim()).filter(Boolean);
     if(!p.length) return toast('Inserisci almeno un nome');
