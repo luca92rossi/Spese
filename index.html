@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spese Casa">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0f766e">
+<title>Spese Casa</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --text:#14202b; --muted:#667785; --line:#e2e8ee;
+  --accent:#0f766e; --accent-soft:#d9f2ee; --danger:#c0392b; --ok:#1e8e5a; --bar:#14b8a6;
+  --shadow:0 1px 2px rgba(16,32,48,.06),0 4px 14px rgba(16,32,48,.05);
+  --sab:env(safe-area-inset-bottom,0px); --sat:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0e151b; --card:#17212a; --text:#e8eef3; --muted:#8fa2b1; --line:#26333e;
+    --accent:#2dd4bf; --accent-soft:#12403c; --danger:#ff7a6b; --ok:#4ade80; --bar:#2dd4bf;
+    --shadow:0 1px 2px rgba(0,0,0,.4);}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-bottom:calc(76px + var(--sab));}
+header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+  padding:calc(10px + var(--sat)) 16px 10px;display:flex;align-items:center;gap:12px}
+header h1{font-size:19px;margin:0;flex:1}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:600;white-space:nowrap}
+.pill.err{background:#fde4e1;color:var(--danger)} .pill.off{background:var(--line);color:var(--muted)}
+.wrap{max-width:920px;margin:0 auto;padding:16px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);
+  display:flex;padding:6px 6px calc(6px + var(--sab))}
+nav button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-size:11px;padding:6px 2px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;border-radius:10px;cursor:pointer}
+nav button .i{font-size:22px;line-height:1}
+nav button.on{color:var(--accent);font-weight:700;background:var(--accent-soft)}
+@media (min-width:760px){
+  body{padding-bottom:24px}
+  nav{position:sticky;top:57px;bottom:auto;border:0;border-bottom:1px solid var(--line);justify-content:center;gap:6px;padding:6px}
+  nav button{flex:0 0 auto;flex-direction:row;font-size:15px;gap:8px;padding:8px 18px}
+  nav button .i{font-size:18px}
+}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+label,.lbl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--text);background:var(--bg);
+  border:1px solid var(--line);border-radius:12px;padding:11px 12px;-webkit-appearance:none;appearance:none;min-height:46px}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:34px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-color:transparent}
+textarea{resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.cat{border:1.5px solid var(--line);background:var(--bg);color:var(--text);border-radius:12px;padding:10px 4px;font:inherit;font-size:13px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;min-height:64px}
+.cat span{font-size:24px;line-height:1}
+.cat.on{border-color:var(--accent);background:var(--accent-soft);font-weight:700}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.chip{border:1.5px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:14px;
+  border-radius:99px;padding:8px 16px;cursor:pointer;min-height:40px}
+.seg button.on,.chip.on{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.chip{white-space:nowrap;flex:0 0 auto;padding:6px 12px;min-height:34px;font-size:13px}
+.params{background:var(--accent-soft);border-radius:12px;padding:2px 14px 14px;margin-top:14px}
+.params .ph{font-size:12px;font-weight:700;color:var(--accent);margin-top:12px;text-transform:uppercase;letter-spacing:.04em}
+.params input,.params select{background:var(--card)}
+.btn{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:700;border-radius:12px;padding:13px 18px;cursor:pointer;min-height:48px}
+.btn.sec{background:var(--bg);color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:var(--danger)}
+.btn.block{width:100%}
+.actions{display:flex;gap:10px;margin-top:18px}.actions .btn{flex:1}
+.monthnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.monthnav button{border:1px solid var(--line);background:var(--card);color:var(--text);width:44px;height:44px;border-radius:12px;font-size:20px;cursor:pointer}
+.monthnav .m{font-size:18px;font-weight:700;text-transform:capitalize;text-align:center;flex:1}
+.hero{font-size:34px;font-weight:800;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:14px}
+.up{color:var(--danger);font-weight:600}.down{color:var(--ok);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.kpi{background:var(--bg);border-radius:12px;padding:10px 12px}.kpi b{display:block;font-size:18px}.kpi small{color:var(--muted)}
+.bar-row{margin:10px 0}.bar-top{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.bar-top span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:9px;background:var(--bg);border-radius:9px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--bar);border-radius:9px;min-width:2px}
+.cols{display:flex;align-items:flex-end;gap:6px;height:130px;margin-top:6px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--muted);cursor:pointer;min-width:0}
+.col i{display:block;width:100%;background:var(--bar);border-radius:6px 6px 0 0;min-height:2px;opacity:.55}
+.col.on i{opacity:1}.col.on{color:var(--text);font-weight:700}
+.col em{font-style:normal;font-size:10px;white-space:nowrap}
+.exp{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer}
+.exp:first-child{border-top:0}
+.exp .ic{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;font-size:21px;flex:0 0 auto}
+.exp .mid{flex:1;min-width:0}.exp .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp .s{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp .amt{font-weight:700;white-space:nowrap}
+.empty{text-align:center;color:var(--muted);padding:26px 8px}
+details{border-top:1px solid var(--line)}details:first-of-type{border-top:0}
+summary{list-style:none;cursor:pointer;padding:12px 0;display:flex;justify-content:space-between;gap:10px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary .l{font-weight:600;text-transform:capitalize}summary .r{text-align:right;font-weight:700}summary small{display:block;color:var(--muted);font-weight:400}
+.logrow{font-size:13px;padding:8px 0;border-top:1px solid var(--line);display:flex;gap:8px}
+.logrow:first-child{border-top:0}.logrow time{color:var(--muted);flex:0 0 118px}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);height:fit-content}
+.tag.elimina{background:#fde4e1;color:var(--danger)}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.sheet{background:var(--card);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(20px + var(--sab));-webkit-overflow-scrolling:touch}
+@media (min-width:760px){.overlay{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{margin:0 0 4px}
+#toast{position:fixed;left:50%;bottom:calc(92px + var(--sab));transform:translateX(-50%);background:#14202b;color:#fff;padding:11px 18px;border-radius:99px;
+  font-size:14px;z-index:99;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90%;text-align:center}
+#toast.show{opacity:1}
+.note{font-size:13px;color:var(--muted)}
+.warn{background:#fff4d6;color:#7a5a00;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+@media (prefers-color-scheme:dark){.warn{background:#3a3010;color:#ffd770}}
+code{background:var(--bg);padding:1px 6px;border-radius:6px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <img src="icon.svg" alt="" width="32" height="32" style="border-radius:8px;display:block">
+  <h1>Spese Casa</h1>
+  <span class="pill off" id="status">Locale</span>
+</header>
+<nav id="nav">
+  <button data-v="add" class="on"><span class="i">➕</span>Inserisci</button>
+  <button data-v="month"><span class="i">📊</span>Mese</button>
+  <button data-v="hist"><span class="i">🗂️</span>Storico</button>
+  <button data-v="set"><span class="i">⚙️</span>Impostazioni</button>
+</nav>
+<main class="wrap" id="app"></main>
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURAZIONE FIREBASE
+   Opzione A: incolla qui sotto i valori del tuo progetto Firebase.
+   Opzione B: lascia vuoto e incollali dall'app (Impostazioni > Firebase):
+              restano salvati solo su quel dispositivo.
+   Finché non è configurato, l'app funziona in modalità "Locale"
+   (dati nel browser) così puoi provarla subito.
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyARHzzgnEEIZK5Rn0urKE1qyTg_9gRwuMU",
+  authDomain: "spese-a5217.firebaseapp.com",
+  projectId: "spese-a5217",
+  storageBucket: "spese-a5217.firebasestorage.app",
+  messagingSenderId: "1011693206207",
+  appId: "1:1011693206207:web:5c6aebbffc872235af240a"
+};
+
+/* ------------------------- Categorie e parametri ------------------------- */
+const sel = (id,label,options,extra={}) => ({id,label,type:'select',options,...extra});
+const CATS = {
+  tata: {label:'Tata', icon:'👩‍🍼', fields:[
+    sel('tipo','Tipo di costo',['Busta paga','Contributi','Extra ore','Extra weekend','Extra notte'],{required:true}),
+    {id:'qty',type:'number',step:'0.5',required:true,
+      showIf:p=>/^Extra/.test(p.tipo||''),
+      label:p=>p.tipo==='Extra ore'?'Numero di ore':p.tipo==='Extra weekend'?'Numero di weekend / giorni':'Numero di notti',
+      unit:p=>p.tipo==='Extra ore'?'h':p.tipo==='Extra weekend'?'gg':'notti'},
+    {id:'competenza',label:'Mese di competenza',type:'month'}
+  ]},
+  spesa: {label:'Spesa', icon:'🛒', fields:[
+    sel('negozio','Dove',['Supermercato','Alimentari / mercato','Online','Casa / pulizia','Altro'])
+  ]},
+  medicine: {label:'Medicine', icon:'💊', fields:[
+    {id:'per',label:'Per chi',type:'text',placeholder:'es. Marco'},
+    sel('tipo','Tipo',['Farmaco con ricetta','Farmaco da banco','Parafarmaco','Visita / ticket','Altro'])
+  ]},
+  scuola: {label:'Scuola', icon:'🎒', fields:[
+    {id:'figlio',label:'Figlio/a',type:'text',placeholder:'es. Sofia'},
+    sel('voce','Voce',['Retta','Mensa','Libri','Materiale','Gita','Attività extra','Altro'])
+  ]},
+  divertimento: {label:'Divertimento', icon:'🎉', fields:[
+    sel('tipo','Tipo',['Cinema / teatro','Sport','Giochi / giocattoli','Eventi / parchi','Abbonamenti','Altro'])
+  ]},
+  viaggi: {label:'Viaggi', icon:'✈️', fields:[
+    {id:'destinazione',label:'Destinazione',type:'text',placeholder:'es. Lisbona'},
+    sel('voce','Voce',['Trasporto','Alloggio','Attività','Altro'])
+  ]},
+  ristorazione: {label:'Ristorazione', icon:'🍽️', fields:[
+    {id:'locale',label:'Locale',type:'text',placeholder:'es. Trattoria da Gino'},
+    {id:'persone',label:'Numero di persone',type:'number',step:'1'}
+  ]},
+  bar: {label:'Bar', icon:'☕', fields:[
+    {id:'locale',label:'Locale',type:'text',placeholder:'es. Bar Centrale'},
+    sel('tipo','Tipo',['Colazione','Caffè / aperitivo','Gelato','Altro'])
+  ]}
+};
+const SUBKEY = {tata:'tipo',spesa:'negozio',medicine:'tipo',scuola:'voce',divertimento:'tipo',viaggi:'voce',ristorazione:'locale',bar:'tipo'};
+
+/* ------------------------------ Utilità ------------------------------ */
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
+const pad = n => String(n).padStart(2,'0');
+const today = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const ym = s => s.slice(0,7);
+const shiftM = (m,d) => { const [y,mo]=m.split('-').map(Number); const dt=new Date(y,mo-1+d,1); return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}`; };
+const mLabel = m => { const [y,mo]=m.split('-').map(Number); return new Date(y,mo-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'}); };
+const mShort = m => { const [y,mo]=m.split('-').map(Number); return new Date(y,mo-1,1).toLocaleDateString('it-IT',{month:'short'}); };
+const dLabel = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}); };
+const uid = () => (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const parseAmt = v => { const n=parseFloat(String(v).trim().replace(/\s/g,'').replace(',','.')); return isFinite(n)?Math.round(n*100)/100:NaN; };
+const sum = a => a.reduce((t,e)=>t+e.amount,0);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('show'),2600); }
+function group(list,keyFn){ const m={}; list.forEach(e=>{const k=keyFn(e)||'—'; (m[k]=m[k]||[]).push(e);}); return m; }
+
+/* ------------------------------ Stato ------------------------------ */
+const LS = {
+  get(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+};
+const S = {
+  view:'add', mode:'local', fbError:'',
+  expenses: LS.get('sc_expenses',[]),
+  log: LS.get('sc_log',[]),
+  settings: LS.get('sc_settings',{payers:['Papà','Mamma']}),
+  fbConfig: LS.get('sc_fbconfig',null),
+  month: ym(today()),
+  histMode:'month', histCat:'', histType:'tata', logFilter:'all'
+};
+let FB=null, DB=null, unsubs=[];
+const persist = () => { if(S.mode==='local'){ LS.set('sc_expenses',S.expenses); LS.set('sc_log',S.log); } };
+const device = () => /iPhone/.test(navigator.userAgent)?'iPhone':/iPad|Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1?'iPad':/Android/.test(navigator.userAgent)?'Android':'PC';
+
+/* --------------------------- Dati: salvataggio + log --------------------------- */
+function describe(e){
+  const c=CATS[e.category]; if(!c) return e.category;
+  const p=e.params||{}, parts=[];
+  c.fields.forEach(f=>{
+    if(f.showIf && !f.showIf(p)) return;
+    let v=p[f.id]; if(v===undefined||v===''||v===null) return;
+    if(f.id==='competenza'){ v='competenza '+mShort(v); }
+    else if(f.type==='number'){ v = f.unit? `${v} ${f.unit(p)}` : (f.id==='persone'?`${v} pers.`:v); }
+    parts.push(v);
+  });
+  return parts.join(' · ');
+}
+function logAction(action,e){
+  const entry={id:uid(),ts:Date.now(),action,expenseId:e.id,
+    summary:`${CATS[e.category]?.label||e.category} ${eur(e.amount)} – ${e.payer} (${e.date})`,
+    device:device(),mode:S.mode};
+  if(S.mode==='firebase'){ FB.setDoc(FB.doc(DB,'log',entry.id),entry).catch(err=>console.warn('log',err)); }
+  else { S.log.unshift(entry); S.log=S.log.slice(0,500); persist(); }
+}
+function saveExpense(e,isNew){
+  e.updatedAt=Date.now(); if(isNew) e.createdAt=e.updatedAt;
+  if(S.mode==='firebase'){
+    FB.setDoc(FB.doc(DB,'spese',e.id),e).catch(err=>{ toast('Errore Firebase: '+err.code); S.fbError=err.message; });
+  } else {
+    const i=S.expenses.findIndex(x=>x.id===e.id);
+    if(i>=0) S.expenses[i]=e; else S.expenses.push(e);
+    persist();
+  }
+  logAction(isNew?'crea':'modifica',e);
+}
+function deleteExpense(e){
+  if(S.mode==='firebase'){ FB.deleteDoc(FB.doc(DB,'spese',e.id)).catch(err=>toast('Errore Firebase: '+err.code)); }
+  else { S.expenses=S.expenses.filter(x=>x.id!==e.id); persist(); }
+  logAction('elimina',e);
+}
+
+/* ------------------------------ Firebase ------------------------------ */
+function activeConfig(){
+  if(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId) return FIREBASE_CONFIG;
+  if(S.fbConfig && S.fbConfig.apiKey && S.fbConfig.projectId) return S.fbConfig;
+  return null;
+}
+function setStatus(kind,text){ const p=$('#status'); p.className='pill '+(kind==='ok'?'':kind==='err'?'err':'off'); p.textContent=text; }
+async function connectFirebase(cfg){
+  disconnectFirebase();
+  setStatus('off','Connessione…');
+  try{
+    const base='https://www.gstatic.com/firebasejs/10.12.2/';
+    const [A,F,Au]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-firestore.js'),import(base+'firebase-auth.js')]);
+    const app=A.initializeApp(cfg);
+    try{ await Au.signInAnonymously(Au.getAuth(app)); }catch(e){ console.warn('Auth anonima non disponibile:',e.code); }
+    DB=F.getFirestore(app);
+    FB={doc:F.doc,setDoc:F.setDoc,deleteDoc:F.deleteDoc,collection:F.collection,writeBatch:F.writeBatch};
+    S.mode='firebase'; S.fbError='';
+    const onErr=err=>{ S.fbError=err.code+': '+err.message; setStatus('err','Errore Firebase'); render(); };
+    unsubs.push(F.onSnapshot(F.collection(DB,'spese'),snap=>{
+      S.expenses=snap.docs.map(d=>d.data());
+      setStatus('ok',snap.metadata.fromCache?'Firebase · offline':'Firebase · online'); render();
+    },onErr));
+    unsubs.push(F.onSnapshot(F.query(F.collection(DB,'log'),F.orderBy('ts','desc'),F.limit(300)),snap=>{
+      S.log=snap.docs.map(d=>d.data()); if(S.view==='set') render();
+    },onErr));
+  }catch(err){
+    S.mode='local'; S.fbError=String(err.message||err);
+    S.expenses=LS.get('sc_expenses',[]); S.log=LS.get('sc_log',[]);
+    setStatus('err','Errore connessione'); render();
+  }
+}
+function disconnectFirebase(){
+  unsubs.forEach(u=>{try{u()}catch(e){}}); unsubs=[]; FB=null; DB=null;
+  if(S.mode==='firebase'){ S.mode='local'; S.expenses=LS.get('sc_expenses',[]); S.log=LS.get('sc_log',[]); }
+  setStatus('off','Locale');
+}
+function parseConfigText(t){
+  const o={}; let m; const re=/["']?(\w+)["']?\s*:\s*["']([^"']+)["']/g;
+  while((m=re.exec(t))) o[m[1]]=m[2];
+  return o;
+}
+
+/* ------------------------------ Form spesa ------------------------------ */
+function mountForm(root,init,opt){
+  const st={cat:init.category||'',amount:init.amount!=null?String(init.amount).replace('.',','):'',date:init.date||today(),
+            payer:init.payer||S.settings.payers[0],note:init.note||'',p:{...(init.params||{})}};
+  const payers=[...new Set([...S.settings.payers,...(init.payer?[init.payer]:[])])];
+  function paramsHTML(){
+    const c=CATS[st.cat]; if(!c) return '';
+    let h=`<div class="params"><div class="ph">${c.icon} Dettagli ${esc(c.label)}</div>`;
+    c.fields.forEach(f=>{
+      if(f.showIf && !f.showIf(st.p)) return;
+      const label=typeof f.label==='function'?f.label(st.p):f.label;
+      const v=st.p[f.id]??'';
+      h+=`<label>${esc(label)}${f.required?' *':''}</label>`;
+      if(f.type==='select'){
+        h+=`<select data-p="${f.id}"><option value="">Seleziona…</option>${f.options.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+      } else if(f.type==='number'){
+        h+=`<input data-p="${f.id}" type="text" inputmode="decimal" value="${esc(String(v).replace('.',','))}">`;
+      } else if(f.type==='month'){
+        h+=`<input data-p="${f.id}" type="month" value="${esc(v)}" placeholder="aaaa-mm">`;
+      } else {
+        h+=`<input data-p="${f.id}" type="text" value="${esc(v)}" placeholder="${esc(f.placeholder||'')}" autocapitalize="sentences">`;
+      }
+    });
+    return h+'</div>';
+  }
+  function draw(){
+    root.innerHTML=`<form novalidate>
+      <div class="lbl" style="margin-top:0">Tipo di spesa *</div>
+      <div class="cats">${Object.entries(CATS).map(([k,c])=>`<button type="button" class="cat ${st.cat===k?'on':''}" data-cat="${k}"><span>${c.icon}</span>${esc(c.label)}</button>`).join('')}</div>
+      ${paramsHTML()}
+      <div class="row2">
+        <div><label>Importo (€) *</label><input id="f-amount" type="text" inputmode="decimal" placeholder="0,00" value="${esc(st.amount)}"></div>
+        <div><label>Data *</label><input id="f-date" type="date" value="${esc(st.date)}"></div>
+      </div>
+      <label>Chi l'ha sostenuta *</label>
+      <div class="seg">${payers.map(p=>`<button type="button" data-payer="${esc(p)}" class="${st.payer===p?'on':''}">${esc(p)}</button>`).join('')}</div>
+      <label>Commenti</label>
+      <textarea id="f-note" rows="3" placeholder="Note libere (facoltativo)">${esc(st.note)}</textarea>
+      <div class="actions">${opt.extra||''}<button class="btn" type="submit">${opt.submitLabel||'Salva spesa'}</button></div>
+    </form>`;
+  }
+  root.onclick=ev=>{
+    const c=ev.target.closest('[data-cat]'); if(c){ if(st.cat!==c.dataset.cat){ st.cat=c.dataset.cat; st.p={}; draw(); } return; }
+    const p=ev.target.closest('[data-payer]'); if(p){ st.payer=p.dataset.payer; draw(); return; }
+    if(opt.onClick) opt.onClick(ev);
+  };
+  root.oninput=ev=>{
+    const t=ev.target;
+    if(t.id==='f-amount') st.amount=t.value; else if(t.id==='f-date') st.date=t.value; else if(t.id==='f-note') st.note=t.value;
+    else if(t.dataset.p && t.tagName!=='SELECT') st.p[t.dataset.p]=t.value;
+  };
+  root.onchange=ev=>{ const t=ev.target; if(t.dataset.p && t.tagName==='SELECT'){ st.p[t.dataset.p]=t.value; draw(); } };
+  root.onsubmit=ev=>{
+    ev.preventDefault();
+    if(!st.cat) return toast('Scegli il tipo di spesa');
+    const amount=parseAmt(st.amount); if(!(amount>0)) return toast('Inserisci un importo valido');
+    if(!st.date) return toast('Inserisci la data');
+    if(!st.payer) return toast('Indica chi ha pagato');
+    const c=CATS[st.cat], params={};
+    for(const f of c.fields){
+      if(f.showIf && !f.showIf(st.p)) continue;
+      let v=(st.p[f.id]??'').toString().trim();
+      if(f.required && !v) return toast(`Compila: ${typeof f.label==='function'?f.label(st.p):f.label}`);
+      if(f.type==='number' && v){ const n=parseAmt(v); if(isNaN(n)) return toast('Valore numerico non valido'); v=n; }
+      if(v!=='') params[f.id]=v;
+    }
+    if(st.cat==='tata' && !params.competenza) params.competenza=ym(st.date);
+    opt.onSave({id:init.id||uid(),category:st.cat,amount,date:st.date,payer:st.payer,note:st.note.trim(),params,createdAt:init.createdAt},st);
+  };
+  draw();
+}
+
+/* ------------------------------ Viste ------------------------------ */
+function expRow(e){
+  const c=CATS[e.category]||{icon:'❓',label:e.category};
+  const det=describe(e);
+  return `<div class="exp" data-edit="${esc(e.id)}">
+    <div class="ic">${c.icon}</div>
+    <div class="mid"><div class="t">${esc(c.label)}${det?' · '+esc(det):''}</div>
+    <div class="s">${dLabel(e.date)} · ${esc(e.payer)}${e.note?' · “'+esc(e.note)+'”':''}</div></div>
+    <div class="amt">${eur(e.amount)}</div></div>`;
+}
+function bars(rows,total){ // rows: [label,value]
+  if(!rows.length) return '<div class="empty">Nessun dato</div>';
+  const max=Math.max(...rows.map(r=>r[1]));
+  return rows.map(([l,v])=>`<div class="bar-row"><div class="bar-top"><span>${l}</span><span><b>${eur(v)}</b>${total?` <span class="sub">${Math.round(v/total*100)}%</span>`:''}</span></div>
+    <div class="bar"><i style="width:${max?v/max*100:0}%"></i></div></div>`).join('');
+}
+function monthNav(m){
+  return `<div class="monthnav"><button data-mn="-1" aria-label="Mese precedente">‹</button>
+    <div class="m">${mLabel(m)}</div><button data-mn="1" aria-label="Mese successivo">›</button></div>`;
+}
+function trendCols(list,months,sel){
+  const tot=months.map(m=>sum(list.filter(e=>ym(e.date)===m))); const max=Math.max(...tot,1);
+  return `<div class="cols">${months.map((m,i)=>`<div class="col ${m===sel?'on':''}" data-pick="${m}">
+    <em>${tot[i]?Math.round(tot[i]):''}</em><i style="height:${Math.max(tot[i]/max*100,2)}%"></i>${mShort(m)}</div>`).join('')}</div>`;
+}
+
+const VIEWS={
+  add(){
+    $('#app').innerHTML=`<div class="card"><h2>Nuova spesa</h2><div id="formroot"></div></div>
+      ${S.mode==='local'?'<div class="note" style="text-align:center">Modalità locale: i dati restano su questo dispositivo. Collega Firebase da ⚙️ Impostazioni per condividerli.</div>':''}`;
+    const last={payer:S.lastPayer};
+    mountForm($('#formroot'),last,{submitLabel:'Salva spesa',onSave:(e,st)=>{
+      S.lastPayer=e.payer; saveExpense(e,true); S.month=ym(e.date); toast('✅ Spesa salvata');
+      VIEWS.add();
+    }});
+  },
+  month(){
+    const m=S.month, cur=S.expenses.filter(e=>ym(e.date)===m), prev=S.expenses.filter(e=>ym(e.date)===shiftM(m,-1));
+    const tot=sum(cur), ptot=sum(prev);
+    const delta=ptot?((tot-ptot)/ptot*100):null;
+    const days=new Set(cur.map(e=>e.date)).size;
+    const byCat=Object.entries(group(cur,e=>e.category)).map(([k,l])=>[`${CATS[k]?.icon||''} ${esc(CATS[k]?.label||k)}`,sum(l)]).sort((a,b)=>b[1]-a[1]);
+    const tata=cur.filter(e=>e.category==='tata');
+    const byTata=Object.entries(group(tata,e=>e.params?.tipo)).map(([k,l])=>[esc(k),sum(l)]).sort((a,b)=>b[1]-a[1]);
+    const byPayer=Object.entries(group(cur,e=>e.payer)).map(([k,l])=>[k,sum(l)]);
+    S.settings.payers.forEach(p=>{ if(!byPayer.find(x=>x[0]===p)) byPayer.push([p,0]); });
+    const share=byPayer.length?tot/byPayer.length:0;
+    let settle='';
+    if(byPayer.length===2 && tot>0){
+      const [a,b]=byPayer, d=a[1]-share;
+      settle=Math.abs(d)<0.005?'Siete in pari (50/50).':
+        d>0?`<b>${esc(b[0])}</b> dovrebbe dare <b>${eur(d)}</b> a <b>${esc(a[0])}</b> per dividere a metà.`
+           :`<b>${esc(a[0])}</b> dovrebbe dare <b>${eur(-d)}</b> a <b>${esc(b[0])}</b> per dividere a metà.`;
+    }
+    const top=[...cur].sort((a,b)=>b.amount-a.amount).slice(0,5);
+    const months=Array.from({length:6},(_,i)=>shiftM(m,i-5));
+    $('#app').innerHTML=`${monthNav(m)}
+      <div class="card"><h2>Totale del mese</h2><div class="hero">${eur(tot)}</div>
+        <div class="sub">${delta===null?'Nessun confronto col mese precedente':
+          `<span class="${delta>0?'up':'down'}">${delta>0?'▲':'▼'} ${Math.abs(delta).toFixed(1).replace('.',',')}%</span> rispetto a ${mLabel(shiftM(m,-1))} (${eur(ptot)})`}</div>
+        <div class="kpis">
+          <div class="kpi"><b>${cur.length}</b><small>spese</small></div>
+          <div class="kpi"><b>${cur.length?eur(tot/cur.length):'—'}</b><small>media per spesa</small></div>
+          <div class="kpi"><b>${days?eur(tot/days):'—'}</b><small>media per giorno con spese</small></div>
+        </div></div>
+      <div class="card"><h2>Ultimi 6 mesi</h2>${trendCols(S.expenses,months,m)}</div>
+      <div class="card"><h2>Per tipo di spesa</h2>${bars(byCat,tot)}</div>
+      ${tata.length?`<div class="card"><h2>👩‍🍼 Dettaglio Tata · ${eur(sum(tata))}</h2>${bars(byTata,sum(tata))}</div>`:''}
+      <div class="card"><h2>Chi ha pagato</h2>${bars(byPayer.map(x=>[esc(x[0]),x[1]]),tot)}
+        ${settle?`<p style="margin:12px 0 0">${settle}</p>`:''}</div>
+      <div class="card"><h2>Le 5 spese più alte</h2>${top.length?top.map(expRow).join(''):'<div class="empty">Nessuna spesa</div>'}</div>`;
+  },
+  hist(){
+    const m=S.month, mode=S.histMode;
+    let body='';
+    if(mode==='month'){
+      let cur=S.expenses.filter(e=>ym(e.date)===m);
+      if(S.histCat) cur=cur.filter(e=>e.category===S.histCat);
+      cur.sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
+      const months=Array.from({length:12},(_,i)=>shiftM(m,i-11));
+      const base=S.histCat?S.expenses.filter(e=>e.category===S.histCat):S.expenses;
+      const g=group(cur,e=>e.category);
+      body=`${monthNav(m)}
+        <div class="chips" style="margin-bottom:12px"><button class="chip ${!S.histCat?'on':''}" data-hc="">Tutte</button>
+          ${Object.entries(CATS).map(([k,c])=>`<button class="chip ${S.histCat===k?'on':''}" data-hc="${k}">${c.icon} ${esc(c.label)}</button>`).join('')}</div>
+        <div class="card"><h2>Ultimi 12 mesi${S.histCat?' · '+esc(CATS[S.histCat].label):''}</h2>${trendCols(base,months,m)}</div>
+        <div class="card"><h2>${mLabel(m)} · ${eur(sum(cur))} · ${cur.length} spese</h2>
+        ${cur.length?Object.entries(g).sort((a,b)=>sum(b[1])-sum(a[1])).map(([k,l])=>`
+          <details open><summary><span class="l">${CATS[k]?.icon||''} ${esc(CATS[k]?.label||k)}<small>${l.length} spese</small></span><span class="r">${eur(sum(l))}</span></summary>
+          ${l.map(expRow).join('')}</details>`).join(''):'<div class="empty">Nessuna spesa in questo mese</div>'}</div>`;
+    } else {
+      const t=S.histType, list=S.expenses.filter(e=>e.category===t);
+      const byM=Object.entries(group(list,e=>ym(e.date))).sort((a,b)=>b[0].localeCompare(a[0]));
+      const sk=SUBKEY[t];
+      const bySub=Object.entries(group(list,e=>e.params?.[sk])).map(([k,l])=>[esc(k),sum(l)]).sort((a,b)=>b[1]-a[1]);
+      const avg=byM.length?sum(list)/byM.length:0;
+      const label=CATS[t].fields.find(f=>f.id===sk)?.label||'Dettaglio';
+      body=`<div class="chips" style="margin-bottom:12px">${Object.entries(CATS).map(([k,c])=>`<button class="chip ${t===k?'on':''}" data-ht="${k}">${c.icon} ${esc(c.label)}</button>`).join('')}</div>
+        <div class="card"><h2>${CATS[t].icon} ${esc(CATS[t].label)} · statistiche</h2>
+          <div class="kpis"><div class="kpi"><b>${eur(sum(list))}</b><small>totale storico</small></div>
+          <div class="kpi"><b>${eur(avg)}</b><small>media mensile</small></div>
+          <div class="kpi"><b>${list.length}</b><small>spese</small></div></div></div>
+        <div class="card"><h2>Per ${esc(label.toLowerCase())}</h2>${bars(bySub,sum(list))}</div>
+        <div class="card"><h2>Mese per mese</h2>${byM.length?byM.map(([mm,l])=>`<details><summary>
+          <span class="l">${mLabel(mm)}<small>${l.length} spese · media ${eur(sum(l)/l.length)}</small></span><span class="r">${eur(sum(l))}</span></summary>
+          ${l.sort((a,b)=>b.date.localeCompare(a.date)).map(expRow).join('')}</details>`).join(''):'<div class="empty">Nessuna spesa registrata per questo tipo</div>'}</div>`;
+    }
+    $('#app').innerHTML=`<div class="seg" style="margin-bottom:14px">
+      <button class="${mode==='month'?'on':''}" data-hm="month">📅 Per mese</button>
+      <button class="${mode==='type'?'on':''}" data-hm="type">🏷️ Per tipo di spesa</button></div>${body}`;
+  },
+  set(){
+    const cfg=activeConfig(), fromFile=FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId;
+    const logs=S.log.filter(l=>S.logFilter==='all'||l.action===S.logFilter);
+    $('#app').innerHTML=`
+      <div class="card"><h2>Firebase</h2>
+        <p style="margin:0 0 8px">Stato: <b>${S.mode==='firebase'?'collegato ✅':'non collegato (dati solo su questo dispositivo)'}</b></p>
+        ${S.fbError?`<div class="warn">⚠️ ${esc(S.fbError)}</div>`:''}
+        ${fromFile?'<p class="note">Configurazione letta dal file <code>index.html</code>.</p>':`
+        <label style="margin-top:0">Incolla la configurazione web del progetto Firebase</label>
+        <textarea id="fbtxt" rows="7" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "...", "messagingSenderId": "...", "appId": "..." }'>${S.fbConfig?esc(JSON.stringify(S.fbConfig,null,2)):''}</textarea>
+        <div class="actions"><button class="btn sec" id="fbdisc">Scollega</button><button class="btn" id="fbsave">Salva e collega</button></div>`}
+        ${S.mode==='firebase'&&LS.get('sc_expenses',[]).length?`<button class="btn sec block" id="upload" style="margin-top:12px">⬆️ Carica su Firebase le ${LS.get('sc_expenses',[]).length} spese salvate in locale</button>`:''}
+      </div>
+      <div class="card"><h2>Chi sostiene le spese</h2>
+        <label style="margin-top:0">Nomi separati da virgola</label><input id="payers" value="${esc(S.settings.payers.join(', '))}">
+        <div class="actions"><button class="btn" id="savepayers">Salva nomi</button></div></div>
+      <div class="card"><h2>Dati</h2>
+        <div class="actions" style="margin-top:0;flex-wrap:wrap"><button class="btn sec" id="csv">⬇️ Esporta CSV</button>
+        ${S.mode==='local'?'<button class="btn sec" id="demo">🧪 Carica dati di esempio</button><button class="btn sec" id="wipe">🗑️ Cancella dati locali</button>':''}</div></div>
+      <div class="card"><h2>Registro attività (log)</h2>
+        <div class="chips" style="margin-bottom:8px">${[['all','Tutti'],['crea','Creazioni'],['modifica','Modifiche'],['elimina','Eliminazioni']].map(([k,l])=>`<button class="chip ${S.logFilter===k?'on':''}" data-lf="${k}">${l}</button>`).join('')}</div>
+        ${logs.length?logs.slice(0,100).map(l=>`<div class="logrow"><time>${new Date(l.ts).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time>
+          <span class="tag ${esc(l.action)}">${esc(l.action)}</span><span style="flex:1">${esc(l.summary)} <span class="sub">· ${esc(l.device||'')}</span></span></div>`).join(''):'<div class="empty">Nessuna attività registrata</div>'}
+      </div>`;
+  }
+};
+function render(){ (VIEWS[S.view]||VIEWS.add)(); document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view)); }
+
+/* ------------------------------ Modifica spesa ------------------------------ */
+function openEdit(id){
+  const e=S.expenses.find(x=>x.id===id); if(!e) return;
+  const sh=$('#sheet'); $('#overlay').classList.add('show');
+  sh.innerHTML=`<h3>Modifica spesa</h3><div id="editroot"></div>`;
+  mountForm($('#editroot'),e,{submitLabel:'Salva modifiche',
+    extra:'<button class="btn danger" type="button" data-del="1">Elimina</button><button class="btn sec" type="button" data-close="1">Annulla</button>',
+    onClick:ev=>{
+      if(ev.target.closest('[data-close]')) closeSheet();
+      if(ev.target.closest('[data-del]')){ if(confirm('Eliminare questa spesa?')){ deleteExpense(e); closeSheet(); toast('Spesa eliminata'); render(); } }
+    },
+    onSave:(n)=>{ n.createdAt=e.createdAt; saveExpense(n,false); closeSheet(); toast('✅ Modifiche salvate'); render(); }});
+}
+function closeSheet(){ $('#overlay').classList.remove('show'); $('#sheet').innerHTML=''; }
+$('#overlay').addEventListener('click',ev=>{ if(ev.target.id==='overlay') closeSheet(); });
+
+/* ------------------------------ Eventi globali ------------------------------ */
+$('#nav').addEventListener('click',ev=>{ const b=ev.target.closest('button'); if(b){ S.view=b.dataset.v; render(); window.scrollTo(0,0); } });
+$('#app').addEventListener('click',ev=>{
+  const t=ev.target, q=s=>t.closest(s);
+  let x;
+  if((x=q('[data-edit]'))) return openEdit(x.dataset.edit);
+  if((x=q('[data-mn]'))){ S.month=shiftM(S.month,+x.dataset.mn); return render(); }
+  if((x=q('[data-pick]'))){ S.month=x.dataset.pick; if(S.view==='month'||S.view==='hist') return render(); }
+  if((x=q('[data-hm]'))){ S.histMode=x.dataset.hm; return render(); }
+  if((x=q('[data-hc]'))){ S.histCat=x.dataset.hc; return render(); }
+  if((x=q('[data-ht]'))){ S.histType=x.dataset.ht; return render(); }
+  if((x=q('[data-lf]'))){ S.logFilter=x.dataset.lf; return render(); }
+  if(q('#fbsave')){
+    const cfg=parseConfigText($('#fbtxt').value);
+    if(!cfg.apiKey||!cfg.projectId) return toast('Configurazione incompleta (servono apiKey e projectId)');
+    S.fbConfig=cfg; LS.set('sc_fbconfig',cfg); connectFirebase(cfg).then(()=>{ toast(S.mode==='firebase'?'Collegato a Firebase':'Connessione non riuscita'); render(); });
+    return;
+  }
+  if(q('#fbdisc')){ S.fbConfig=null; LS.set('sc_fbconfig',null); disconnectFirebase(); toast('Scollegato'); return render(); }
+  if(q('#savepayers')){
+    const p=$('#payers').value.split(',').map(s=>s.trim()).filter(Boolean);
+    if(!p.length) return toast('Inserisci almeno un nome');
+    S.settings.payers=[...new Set(p)]; LS.set('sc_settings',S.settings); return toast('Nomi salvati');
+  }
+  if(q('#upload')){
+    const loc=LS.get('sc_expenses',[]); if(!confirm(`Caricare ${loc.length} spese su Firebase?`)) return;
+    loc.forEach(e=>FB.setDoc(FB.doc(DB,'spese',e.id),e).catch(err=>toast('Errore: '+err.code)));
+    logAction('crea',{id:'bulk',category:'spesa',amount:0,payer:'import',date:today()});
+    LS.set('sc_expenses',[]); toast('Caricamento avviato'); return render();
+  }
+  if(q('#csv')) return exportCSV();
+  if(q('#demo')) return loadDemo();
+  if(q('#wipe')){ if(confirm('Cancellare tutte le spese e il log locali?')){ S.expenses=[]; S.log=[]; persist(); toast('Dati locali cancellati'); render(); } return; }
+});
+
+function exportCSV(){
+  const rows=[['Data','Tipo','Dettagli','Importo','Pagato da','Commenti','Creata il']];
+  [...S.expenses].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>rows.push([e.date,CATS[e.category]?.label||e.category,describe(e),String(e.amount).replace('.',','),e.payer,e.note||'',e.createdAt?new Date(e.createdAt).toLocaleString('it-IT'):'']));
+  const csv='﻿'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`spese-casa-${today()}.csv`; document.body.appendChild(a); a.click(); a.remove();
+}
+function loadDemo(){
+  const P=S.settings.payers, now=new Date(), out=[];
+  const add=(back,day,cat,amt,params,note='',payer)=>{
+    const d=new Date(now.getFullYear(),now.getMonth()-back,day); const ds=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    out.push({id:uid(),category:cat,amount:amt,date:ds,payer:payer||P[out.length%P.length],note,params,createdAt:Date.now(),updatedAt:Date.now()});
+  };
+  for(let b=0;b<4;b++){
+    add(b,1,'tata',1100,{tipo:'Busta paga',competenza:ym(`${now.getFullYear()}-${pad(now.getMonth()+1-b<1?1:now.getMonth()+1-b)}-01`)},'',P[0]);
+    add(b,16,'tata',320+b*10,{tipo:'Contributi'},'',P[0]);
+    add(b,9,'tata',45,{tipo:'Extra ore',qty:5},'Serata fuori',P[1]);
+    if(b%2===0) add(b,20,'tata',90,{tipo:'Extra weekend',qty:1});
+    if(b===1) add(b,12,'tata',60,{tipo:'Extra notte',qty:1});
+    add(b,3,'spesa',92.4+b*7,{negozio:'Supermercato'},'',P[1]);
+    add(b,11,'spesa',64.8,{negozio:'Alimentari / mercato'});
+    add(b,19,'spesa',110.2-b*3,{negozio:'Supermercato'});
+    add(b,6,'medicine',23.5,{per:'Sofia',tipo:'Farmaco con ricetta'},'Antibiotico');
+    add(b,14,'scuola',280,{figlio:'Sofia',voce:'Retta'});
+    add(b,5,'divertimento',36,{tipo:'Cinema / teatro'},'Film di sabato');
+    add(b,22,'ristorazione',78,{locale:'Trattoria da Gino',persone:4});
+    add(b,8,'bar',12.5,{locale:'Bar Centrale',tipo:'Colazione'});
+    add(b,24,'bar',9,{locale:'Bar Centrale',tipo:'Gelato'});
+  }
+  add(2,15,'viaggi',540,{destinazione:'Lisbona',voce:'Alloggio'},'Weekend lungo');
+  add(2,13,'viaggi',210,{destinazione:'Lisbona',voce:'Trasporto'});
+  S.expenses.push(...out); out.forEach(e=>S.log.unshift({id:uid(),ts:Date.now(),action:'crea',expenseId:e.id,summary:`${CATS[e.category].label} ${eur(e.amount)} – ${e.payer} (${e.date})`,device:device(),mode:'local'}));
+  persist(); toast(`Caricate ${out.length} spese di esempio`); render();
+}
+
+/* ------------------------------ Avvio ------------------------------ */
+render();
+const cfg0=activeConfig();
+if(cfg0) connectFirebase(cfg0);
+</script>
+</body>
+</html>
